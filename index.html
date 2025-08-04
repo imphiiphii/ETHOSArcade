@@ -1,0 +1,154 @@
+
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8" />
+  <title>Fudders Game</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+  <script src="https://cdn.jsdelivr.net/npm/phaser@3.70.0/dist/phaser.min.js"></script>
+  <style>
+    html, body {
+      margin: 0; padding: 0; overflow: hidden;
+      background: #000; touch-action: manipulation;
+      height: 100%;
+    }
+    canvas { display: block; }
+    #gameOverPopup {
+      position: absolute; top: 50%; left: 50%;
+      transform: translate(-50%, -50%);
+      background: #111; padding: 20px 30px;
+      color: #fff; font-family: Arial;
+      text-align: center; border: 3px solid #f00;
+      border-radius: 10px; display: none; z-index: 999;
+    }
+    #gameOverPopup button {
+      margin-top: 10px; padding: 10px 20px;
+      font-size: 16px; background: #f00;
+      color: #fff; border: none; border-radius: 5px;
+    }
+  </style>
+</head>
+<body oncontextmenu="return false;">
+<div id="gameOverPopup">
+  <h2>💀 Game Over</h2>
+  <p id="finalScoreText">Skor: 0</p>
+  <button onclick="location.reload()">Main Lagi</button>
+</div>
+
+<script>
+const config = {
+  type: Phaser.AUTO,
+  scale: {
+    mode: Phaser.Scale.RESIZE,
+    autoCenter: Phaser.Scale.CENTER_BOTH,
+    width: window.innerWidth,
+    height: window.innerHeight
+  },
+  physics: {
+    default: "arcade",
+    arcade: { gravity: { y: 500 }, debug: false }
+  },
+  scene: { preload, create, update }
+};
+
+let player, enemy, bgm, scoreText, creditText, enemyText;
+let score = 0;
+let gameOver = false;
+
+const game = new Phaser.Game(config);
+
+function preload() {
+  this.load.image('bg', 'assets/background.png');
+  this.load.image('ground', 'assets/ground.png');
+  this.load.image('player', 'assets/player.png');
+  this.load.image('fudders', 'assets/enemy.png');
+  this.load.audio('bgm', 'assets/bgm.mp3');
+}
+
+function create() {
+  const width = this.scale.width;
+  const height = this.scale.height;
+
+  this.physics.world.setBounds(0, 0, 3000, height);
+  this.cameras.main.setBounds(0, 0, 3000, height);
+
+  for (let i = 0; i < 5; i++) {
+    this.add.image(400 + i * 800, height / 2, 'bg');
+  }
+
+  const platforms = this.physics.add.staticGroup();
+  for (let i = 0; i < 20; i++) {
+    platforms.create(64 + i * 160, height - 20, 'ground');
+  }
+
+  player = this.physics.add.sprite(100, height - 100, 'player').setScale(1.5);
+  player.setBounce(0.1);
+  player.setCollideWorldBounds(true);
+  this.physics.add.collider(player, platforms);
+
+  this.cameras.main.startFollow(player, true, 0.08, 0.08);
+
+  enemy = this.physics.add.sprite(900, height - 100, 'fudders').setScale(1.5);
+  enemy.setCollideWorldBounds(true);
+  this.physics.add.collider(enemy, platforms);
+
+  enemyText = this.add.text(0, 0, 'Fudders', {
+    font: '16px Arial', fill: '#ff0000', fontWeight: 'bold'
+  });
+
+  scoreText = this.add.text(16, 16, 'Skor: 0', {
+    fontSize: '20px', fill: '#ffffff'
+  }).setScrollFactor(0);
+
+  creditText = this.add.text(150, 16, 'Game By @imphiiphii', {
+    fontSize: '20px', fill: '#ffffff', fontStyle: 'italic'
+  }).setScrollFactor(0);
+
+  bgm = this.sound.add('bgm', { loop: true, volume: 0.5 });
+  bgm.play();
+
+  this.input.on('pointerdown', function (pointer) {
+    if ((pointer.rightButtonDown() || pointer.primaryDown) && player.body.touching.down && !gameOver) {
+      player.setVelocityY(-350);
+    }
+  });
+
+  this.physics.add.overlap(player, enemy, tabrakMusuh, null, this);
+}
+
+function tabrakMusuh(player, musuh) {
+  if (gameOver) return;
+  if (player.body.velocity.y > 0) {
+    musuh.disableBody(true, true);
+    enemyText.setVisible(false);
+    score += 10;
+    scoreText.setText('Skor: ' + score);
+  } else {
+    endGame();
+  }
+}
+
+function update() {
+  if (gameOver) return;
+  player.setVelocityX(120);
+  if (enemy.active) {
+    const dir = player.x < enemy.x ? -1 : 1;
+    enemy.setVelocityX(60 * dir);
+    enemyText.setPosition(enemy.x - 30, enemy.y - 40);
+  }
+}
+
+function endGame() {
+  gameOver = true;
+  bgm.stop();
+  player.setTint(0xff0000);
+  document.getElementById('finalScoreText').innerText = 'Skor: ' + score;
+  document.getElementById('gameOverPopup').style.display = 'block';
+}
+
+window.addEventListener("resize", () => {
+  game.scale.resize(window.innerWidth, window.innerHeight);
+});
+</script>
+</body>
+</html>

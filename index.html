@@ -50,7 +50,7 @@ const config = {
   scene: { preload, create, update }
 };
 
-let player, enemy, bgm, scoreText, creditText, enemyText;
+let player, enemies, enemyLabels = [], bgm, scoreText, creditText;
 let score = 0;
 let gameOver = false;
 
@@ -71,7 +71,7 @@ function create() {
   this.physics.world.setBounds(0, 0, 4000, height);
   this.cameras.main.setBounds(0, 0, 4000, height);
 
-  // Background loop
+  // Background
   for (let i = 0; i < 15; i++) {
     this.add.image(i * 400, height / 2, 'bg')
       .setDisplaySize(400, height)
@@ -79,11 +79,13 @@ function create() {
       .setDepth(-2);
   }
 
+  // Ground
   const platforms = this.physics.add.staticGroup();
   for (let i = 0; i < 25; i++) {
     platforms.create(64 + i * 160, height - 32, 'ground').setScale(0.5).refreshBody();
   }
 
+  // Player
   player = this.physics.add.sprite(100, height - 150, 'player').setScale(0.15);
   player.setBounce(0.1);
   player.setCollideWorldBounds(true);
@@ -91,14 +93,22 @@ function create() {
 
   this.cameras.main.startFollow(player, true, 0.08, 0.08);
 
-  enemy = this.physics.add.sprite(900, height - 150, 'fudders').setScale(0.15);
-  enemy.setCollideWorldBounds(true);
-  this.physics.add.collider(enemy, platforms);
+  // Enemies
+  enemies = this.physics.add.group();
+  for (let i = 1; i <= 6; i++) {
+    const e = enemies.create(600 * i, height - 150, 'fudders').setScale(0.15);
+    e.setCollideWorldBounds(true);
+    e.setBounce(0.1);
+    this.physics.add.collider(e, platforms);
+    this.physics.add.overlap(player, e, tabrakMusuh, null, this);
 
-  enemyText = this.add.text(0, 0, 'Fudders', {
-    font: '16px Arial', fill: '#ff0000', fontWeight: 'bold'
-  });
+    const label = this.add.text(0, 0, 'Fudders', {
+      font: '16px Arial', fill: '#ff0000'
+    });
+    enemyLabels.push({ enemy: e, label });
+  }
 
+  // UI
   scoreText = this.add.text(16, 16, 'Skor: 0', {
     fontSize: '20px', fill: '#ffffff'
   }).setScrollFactor(0);
@@ -107,37 +117,46 @@ function create() {
     fontSize: '20px', fill: '#ffffff', fontStyle: 'italic'
   }).setScrollFactor(0);
 
+  // Musik
   bgm = this.sound.add('bgm', { loop: true, volume: 0.5 });
   bgm.play();
 
+  // Jump
   this.input.on('pointerdown', function (pointer) {
     if ((pointer.rightButtonDown() || pointer.primaryDown) && player.body.touching.down && !gameOver) {
       player.setVelocityY(-500);
     }
   });
+}
 
-  this.physics.add.overlap(player, enemy, tabrakMusuh, null, this);
+function update() {
+  if (gameOver) return;
+  player.setVelocityX(150);
+
+  enemies.children.iterate((enemyObj) => {
+    if (!enemyObj.active) return;
+    const dir = player.x < enemyObj.x ? -1 : 1;
+    enemyObj.setVelocityX(40 * dir);
+  });
+
+  // Update enemy labels
+  enemyLabels.forEach(({ enemy, label }) => {
+    if (enemy.active) {
+      label.setPosition(enemy.x - 30, enemy.y - 40);
+    } else {
+      label.setVisible(false);
+    }
+  });
 }
 
 function tabrakMusuh(player, musuh) {
   if (gameOver) return;
   if (player.body.velocity.y > 0) {
     musuh.disableBody(true, true);
-    enemyText.setVisible(false);
     score += 10;
     scoreText.setText('Skor: ' + score);
   } else {
     endGame();
-  }
-}
-
-function update() {
-  if (gameOver) return;
-  player.setVelocityX(150);
-  if (enemy.active) {
-    const dir = player.x < enemy.x ? -1 : 1;
-    enemy.setVelocityX(50 * dir);
-    enemyText.setPosition(enemy.x - 30, enemy.y - 40);
   }
 }
 

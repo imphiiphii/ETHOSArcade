@@ -1,111 +1,11 @@
-<!DOCTYPE html>
-<html>
-<head>
-  <meta charset="UTF-8" />
-  <title>Fudders Game</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-  <script src="https://cdn.jsdelivr.net/npm/phaser@3.70.0/dist/phaser.min.js"></script>
-  <style>
-    html, body {
-      margin: 0; padding: 0; overflow: hidden;
-      background: #000;
-      height: 100%; touch-action: manipulation;
-    }
-    canvas { display: block; }
-    #gameOverPopup {
-      position: absolute; top: 50%; left: 50%;
-      transform: translate(-50%, -50%);
-      background: #111; padding: 20px 30px;
-      color: #fff; font-family: Arial;
-      text-align: center; border: 3px solid #f00;
-      border-radius: 10px; display: none; z-index: 999;
-    }
-    #gameOverPopup button {
-      margin-top: 10px; padding: 10px 20px;
-      font-size: 16px; background: #f00;
-      color: #fff; border: none; border-radius: 5px;
-    }
-  </style>
-</head>
-<body oncontextmenu="return false;">
-<div id="gameOverPopup">
-  <h2>💀 Game Over</h2>
-  <p id="finalScoreText">Skor: 0</p>
-  <button onclick="location.reload()">Main Lagi</button>
-</div>
-
-<script>
-const config = {
-  type: Phaser.AUTO,
-  scale: {
-    mode: Phaser.Scale.RESIZE,
-    autoCenter: Phaser.Scale.CENTER_BOTH,
-    width: window.innerWidth,
-    height: window.innerHeight
-  },
-  physics: {
-    default: "arcade",
-    arcade: { gravity: { y: 1000 }, debug: false }
-  },
-  scene: { preload, create, update }
-};
-
-let player, enemies, enemyLabels = [], bgm, scoreText, creditText;
-let score = 0;
-let gameOver = false;
-
-const game = new Phaser.Game(config);
-
-function preload() {
-  this.load.image('bg', 'assets/background.png');
-  this.load.image('ground', 'assets/ground.png');
-  this.load.image('player', 'assets/player.png');
-  this.load.image('fudders', 'assets/enemy.png');
-  this.load.audio('bgm', 'assets/bgm.mp3');
-}
-
-function create() {
-  const width = this.scale.width;
-  const height = this.scale.height;
-
-  this.physics.world.setBounds(0, 0, 4000, height);
-  this.cameras.main.setBounds(0, 0, 4000, height);
-
-  // Background
-  for (let i = 0; i < 15; i++) {
-    this.add.image(i * 400, height / 2, 'bg')
-      .setDisplaySize(400, height)
-      .setScrollFactor(0)
-      .setDepth(-2);
-  }
-
-  // Ground
-  const platforms = this.physics.add.staticGroup();
-  for (let i = 0; i < 25; i++) {
-    platforms.create(64 + i * 160, height - 32, 'ground').setScale(0.5).refreshBody();
-  }
-
-  // Player
-  player = this.physics.add.sprite(100, height - 150, 'player').setScale(0.15);
-  player.setBounce(0.1);
-  player.setCollideWorldBounds(true);
-  this.physics.add.collider(player, platforms);
-
-  this.cameras.main.startFollow(player, true, 0.08, 0.08);
-
-  // Enemies
-  enemies = this.physics.add.group();
-  for (let i = 1; i <= 6; i++) {
-    const e = enemies.create(600 * i, height - 150, 'fudders').setScale(0.15);
-    e.setCollideWorldBounds(true);
-    e.setBounce(0.1);
-    this.physics.add.collider(e, platforms);
-    this.physics.add.overlap(player, e, tabrakMusuh, null, this);
-
-    const label = this.add.text(0, 0, 'Fudders', {
-      font: '16px Arial', fill: '#ff0000'
-    });
-    enemyLabels.push({ enemy: e, label });
+📁 your-project/
+├─ index.html
+└─ assets/
+   ├─ background.png
+   ├─ ground.png
+   ├─ player.png
+   ├─ enemy.png   ← digunakan untuk musuh darat dan terbang
+   └─ bgm.mp3
   }
 
   // UI

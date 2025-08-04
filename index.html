@@ -1,0 +1,172 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8" />
+  <title>Fudders vs Kamu</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <script src="https://cdn.jsdelivr.net/npm/phaser@3.70.0/dist/phaser.min.js"></script>
+  <style>
+    body { margin: 0; overflow: hidden; background: #000; touch-action: manipulation; }
+    canvas { display: block; margin: auto; max-width: 100vw; height: 100vh; }
+
+    #gameOverPopup {
+      position: absolute;
+      top: 50%; left: 50%;
+      transform: translate(-50%, -50%);
+      background: #111;
+      padding: 20px 30px;
+      color: #fff;
+      font-family: Arial;
+      text-align: center;
+      border: 3px solid #f00;
+      border-radius: 10px;
+      display: none;
+      z-index: 999;
+    }
+    #gameOverPopup button {
+      margin-top: 10px;
+      padding: 10px 20px;
+      font-size: 16px;
+      background: #f00;
+      color: #fff;
+      border: none;
+      border-radius: 5px;
+    }
+  </style>
+</head>
+<body oncontextmenu="return false;">
+<div id="gameOverPopup">
+  <h2>💀 Game Over</h2>
+  <p id="finalScoreText">Skor: 0</p>
+  <button onclick="location.reload()">Main Lagi</button>
+</div>
+
+<script>
+const config = {
+  type: Phaser.AUTO,
+  width: 800,
+  height: 600,
+  physics: {
+    default: "arcade",
+    arcade: {
+      gravity: { y: 500 },
+      debug: false
+    }
+  },
+  scene: {
+    preload,
+    create,
+    update
+  }
+};
+
+let player, enemy, bgm, scoreText, creditText, enemyText;
+let score = 0;
+let gameOver = false;
+let camera;
+
+const game = new Phaser.Game(config);
+
+function preload() {
+  this.load.image('bg', 'https://i.imgur.com/rU3M4n1.png');
+  this.load.image('ground', 'https://i.imgur.com/TfBlN6F.png');
+  this.load.image('player', '/mnt/data/PhotoRoom-20250804_060058.png');
+  this.load.image('fudders', 'https://i.imgur.com/H2Y9O7l.png');
+  this.load.audio('bgm', 'https://cdn.pixabay.com/download/audio/2022/03/15/audio_4e29cb4f4f.mp3?filename=super-mario-64-theme-9476.mp3');
+}
+
+function create() {
+  // Atur world yang lebih luas
+  this.physics.world.setBounds(0, 0, 2400, 600);
+  this.cameras.main.setBounds(0, 0, 2400, 600);
+
+  // Tambahkan background yang bisa diulang
+  for (let i = 0; i < 4; i++) {
+    this.add.image(400 + i * 800, 300, 'bg');
+  }
+
+  // Platform panjang
+  const platforms = this.physics.add.staticGroup();
+  for (let i = 0; i < 12; i++) {
+    platforms.create(64 + i * 160, 580, 'ground');
+  }
+
+  // Player
+  player = this.physics.add.sprite(100, 500, 'player').setScale(1.5);
+  player.setBounce(0.1);
+  player.setCollideWorldBounds(true);
+  this.physics.add.collider(player, platforms);
+
+  // Kamera follow player
+  this.cameras.main.startFollow(player, true, 0.08, 0.08);
+
+  // Musuh
+  enemy = this.physics.add.sprite(900, 500, 'fudders').setScale(1.5);
+  enemy.setCollideWorldBounds(true);
+  this.physics.add.collider(enemy, platforms);
+
+  enemyText = this.add.text(0, 0, 'Fudders', {
+    font: '16px Arial', fill: '#ff0000', fontWeight: 'bold'
+  });
+
+  // Skor & credit
+  scoreText = this.add.text(16, 16, 'Skor: 0', {
+    fontSize: '20px', fill: '#ffffff'
+  }).setScrollFactor(0);
+
+  creditText = this.add.text(150, 16, 'Game By @imphiiphii', {
+    fontSize: '20px', fill: '#ffffff', fontStyle: 'italic'
+  }).setScrollFactor(0);
+
+  // Musik
+  bgm = this.sound.add('bgm', { loop: true, volume: 0.5 });
+  bgm.play();
+
+  // Kontrol klik/tap untuk lompat
+  this.input.mouse.disableContextMenu();
+  this.input.on('pointerdown', function (pointer) {
+    if ((pointer.rightButtonDown() || pointer.primaryDown) && player.body.touching.down && !gameOver) {
+      player.setVelocityY(-350);
+    }
+  });
+
+  // Deteksi tabrakan
+  this.physics.add.overlap(player, enemy, tabrakMusuh, null, this);
+}
+
+function tabrakMusuh(player, musuh) {
+  if (gameOver) return;
+
+  if (player.body.velocity.y > 0) {
+    musuh.disableBody(true, true);
+    enemyText.setVisible(false);
+    score += 10;
+    scoreText.setText('Skor: ' + score);
+  } else {
+    endGame();
+  }
+}
+
+function update() {
+  if (gameOver) return;
+
+  player.setVelocityX(120);
+
+  // Enemy kejar player
+  if (enemy.active) {
+    const dir = player.x < enemy.x ? -1 : 1;
+    enemy.setVelocityX(60 * dir);
+    enemyText.setPosition(enemy.x - 30, enemy.y - 40);
+  }
+}
+
+function endGame() {
+  gameOver = true;
+  bgm.stop();
+  player.setTint(0xff0000);
+  document.getElementById('finalScoreText').innerText = 'Skor: ' + score;
+  document.getElementById('gameOverPopup').style.display = 'block';
+}
+</script>
+</body>
+</html>

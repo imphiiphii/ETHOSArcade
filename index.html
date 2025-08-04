@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html>
 <head>
@@ -9,8 +8,8 @@
   <style>
     html, body {
       margin: 0; padding: 0; overflow: hidden;
-      background: #000; touch-action: manipulation;
-      height: 100%;
+      background: #000;
+      height: 100%; touch-action: manipulation;
     }
     canvas { display: block; }
     #gameOverPopup {
@@ -46,7 +45,7 @@ const config = {
   },
   physics: {
     default: "arcade",
-    arcade: { gravity: { y: 800 }, debug: false }
+    arcade: { gravity: { y: 1000 }, debug: false }
   },
   scene: { preload, create, update }
 };
@@ -72,23 +71,27 @@ function create() {
   this.physics.world.setBounds(0, 0, 4000, height);
   this.cameras.main.setBounds(0, 0, 4000, height);
 
-  for (let i = 0; i < 10; i++) {
-    this.add.image(i * 400, height / 2 - 200, 'bg').setScrollFactor(0.5).setScale(1.2);
+  // Background loop
+  for (let i = 0; i < 15; i++) {
+    this.add.image(i * 400, height / 2, 'bg')
+      .setDisplaySize(400, height)
+      .setScrollFactor(0)
+      .setDepth(-2);
   }
 
   const platforms = this.physics.add.staticGroup();
   for (let i = 0; i < 25; i++) {
-    platforms.create(64 + i * 160, height - 20, 'ground').setScale(0.5).refreshBody();
+    platforms.create(64 + i * 160, height - 32, 'ground').setScale(0.5).refreshBody();
   }
 
-  player = this.physics.add.sprite(100, height - 100, 'player').setScale(0.15);
+  player = this.physics.add.sprite(100, height - 150, 'player').setScale(0.15);
   player.setBounce(0.1);
   player.setCollideWorldBounds(true);
   this.physics.add.collider(player, platforms);
 
   this.cameras.main.startFollow(player, true, 0.08, 0.08);
 
-  enemy = this.physics.add.sprite(900, height - 100, 'fudders').setScale(0.15);
+  enemy = this.physics.add.sprite(900, height - 150, 'fudders').setScale(0.15);
   enemy.setCollideWorldBounds(true);
   this.physics.add.collider(enemy, platforms);
 
@@ -109,7 +112,7 @@ function create() {
 
   this.input.on('pointerdown', function (pointer) {
     if ((pointer.rightButtonDown() || pointer.primaryDown) && player.body.touching.down && !gameOver) {
-      player.setVelocityY(-420);
+      player.setVelocityY(-500);
     }
   });
 

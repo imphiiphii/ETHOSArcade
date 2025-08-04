@@ -3,12 +3,20 @@
 <head>
   <meta charset="UTF-8" />
   <title>Fudders vs Kamu</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, maximum-scale=1.0">
   <script src="https://cdn.jsdelivr.net/npm/phaser@3.70.0/dist/phaser.min.js"></script>
   <style>
-    body { margin: 0; overflow: hidden; background: #000; touch-action: manipulation; }
-    canvas { display: block; margin: auto; max-width: 100vw; height: 100vh; }
-
+    html, body {
+      margin: 0;
+      padding: 0;
+      overflow: hidden;
+      background: #000;
+      touch-action: manipulation;
+      height: 100%;
+    }
+    canvas {
+      display: block;
+    }
     #gameOverPopup {
       position: absolute;
       top: 50%; left: 50%;
@@ -44,8 +52,13 @@
 <script>
 const config = {
   type: Phaser.AUTO,
-  width: 800,
-  height: 600,
+  scale: {
+    mode: Phaser.Scale.RESIZE,
+    autoCenter: Phaser.Scale.CENTER_BOTH,
+    parent: 'phaser-game',
+    width: window.innerWidth,
+    height: window.innerHeight
+  },
   physics: {
     default: "arcade",
     arcade: {
@@ -63,7 +76,7 @@ const config = {
 let player, enemy, bgm, scoreText, creditText, enemyText;
 let score = 0;
 let gameOver = false;
-let camera;
+let screenWidth, screenHeight;
 
 const game = new Phaser.Game(config);
 
@@ -76,32 +89,29 @@ function preload() {
 }
 
 function create() {
-  // Atur world yang lebih luas
-  this.physics.world.setBounds(0, 0, 2400, 600);
-  this.cameras.main.setBounds(0, 0, 2400, 600);
+  screenWidth = this.scale.width;
+  screenHeight = this.scale.height;
 
-  // Tambahkan background yang bisa diulang
-  for (let i = 0; i < 4; i++) {
-    this.add.image(400 + i * 800, 300, 'bg');
+  this.physics.world.setBounds(0, 0, 3000, screenHeight);
+  this.cameras.main.setBounds(0, 0, 3000, screenHeight);
+
+  for (let i = 0; i < 5; i++) {
+    this.add.image(400 + i * 800, screenHeight / 2, 'bg');
   }
 
-  // Platform panjang
   const platforms = this.physics.add.staticGroup();
-  for (let i = 0; i < 12; i++) {
-    platforms.create(64 + i * 160, 580, 'ground');
+  for (let i = 0; i < 20; i++) {
+    platforms.create(64 + i * 160, screenHeight - 20, 'ground');
   }
 
-  // Player
-  player = this.physics.add.sprite(100, 500, 'player').setScale(1.5);
+  player = this.physics.add.sprite(100, screenHeight - 100, 'player').setScale(1.5);
   player.setBounce(0.1);
   player.setCollideWorldBounds(true);
   this.physics.add.collider(player, platforms);
 
-  // Kamera follow player
   this.cameras.main.startFollow(player, true, 0.08, 0.08);
 
-  // Musuh
-  enemy = this.physics.add.sprite(900, 500, 'fudders').setScale(1.5);
+  enemy = this.physics.add.sprite(900, screenHeight - 100, 'fudders').setScale(1.5);
   enemy.setCollideWorldBounds(true);
   this.physics.add.collider(enemy, platforms);
 
@@ -109,7 +119,6 @@ function create() {
     font: '16px Arial', fill: '#ff0000', fontWeight: 'bold'
   });
 
-  // Skor & credit
   scoreText = this.add.text(16, 16, 'Skor: 0', {
     fontSize: '20px', fill: '#ffffff'
   }).setScrollFactor(0);
@@ -118,11 +127,9 @@ function create() {
     fontSize: '20px', fill: '#ffffff', fontStyle: 'italic'
   }).setScrollFactor(0);
 
-  // Musik
   bgm = this.sound.add('bgm', { loop: true, volume: 0.5 });
   bgm.play();
 
-  // Kontrol klik/tap untuk lompat
   this.input.mouse.disableContextMenu();
   this.input.on('pointerdown', function (pointer) {
     if ((pointer.rightButtonDown() || pointer.primaryDown) && player.body.touching.down && !gameOver) {
@@ -130,7 +137,6 @@ function create() {
     }
   });
 
-  // Deteksi tabrakan
   this.physics.add.overlap(player, enemy, tabrakMusuh, null, this);
 }
 
@@ -152,7 +158,6 @@ function update() {
 
   player.setVelocityX(120);
 
-  // Enemy kejar player
   if (enemy.active) {
     const dir = player.x < enemy.x ? -1 : 1;
     enemy.setVelocityX(60 * dir);
@@ -167,6 +172,11 @@ function endGame() {
   document.getElementById('finalScoreText').innerText = 'Skor: ' + score;
   document.getElementById('gameOverPopup').style.display = 'block';
 }
+
+// Update ukuran saat resize layar
+window.addEventListener("resize", () => {
+  game.scale.resize(window.innerWidth, window.innerHeight);
+});
 </script>
 </body>
 </html>

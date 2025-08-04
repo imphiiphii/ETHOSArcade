@@ -171,7 +171,8 @@ function create() {
 function update() {
   if (gameOver) return;
 
-  player.setVelocityX(150);
+  // Karakter utama diam (tidak maju otomatis)
+  player.setVelocityX(0);
 
   enemies.children.iterate((e) => {
     if (e.active) {

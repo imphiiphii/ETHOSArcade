@@ -93,8 +93,8 @@ function preload() {
   this.load.image('ground', 'assets/ground.png');
   this.load.image('player', 'assets/player.png');
   this.load.image('fudders', 'assets/enemy.png');
-  this.load.image('flying', 'assets/enemy.png'); // gunakan image sama
-  this.load.image('bullet', 'https://upload.wikimedia.org/wikipedia/commons/3/3f/Black_circle.png');
+  this.load.image('flying', 'assets/enemy.png');
+  this.load.image('bullet', 'https://upload.wikimedia.org/wikipedia/commons/thumb/2/23/Red_laser_beam.svg/640px-Red_laser_beam.svg.png');
   this.load.audio('bgm', 'assets/bgm.mp3');
 }
 
@@ -105,15 +105,18 @@ function create() {
   this.cameras.main.setBounds(0, 0, 5000, height);
 
   for (let i = 0; i < 20; i++) {
-    this.add.image(i * 400, height / 2, 'bg')
-      .setDisplaySize(400, height)
-      .setScrollFactor(0)
+    this.add.image(i * 400, 0, 'bg')
+      .setOrigin(0, 0)
+      .setDisplaySize(400, this.scale.height)
+      .setScrollFactor(0.5)
       .setDepth(-2);
   }
 
   const platforms = this.physics.add.staticGroup();
   for (let i = 0; i < 30; i++) {
-    platforms.create(64 + i * 160, height - 32, 'ground').setScale(0.5).refreshBody();
+    platforms.create(64 + i * 160, height - 16, 'ground')
+      .setScale(0.5)
+      .refreshBody();
   }
 
   player = this.physics.add.sprite(100, height - 150, 'player').setScale(0.15);
@@ -133,7 +136,6 @@ function create() {
     enemyLabels.push({ enemy: e, label: this.add.text(0, 0, 'Fudders', { font: '16px Arial', fill: '#ff0000' }) });
   }
 
-  // Musuh terbang
   this.time.addEvent({
     delay: 3000,
     loop: true,
@@ -147,7 +149,6 @@ function create() {
     }
   });
 
-  // Tombol layar
   document.getElementById('btnJump').addEventListener('click', () => {
     if (player.body.touching.down && !gameOver) {
       player.setVelocityY(-500);
@@ -158,7 +159,6 @@ function create() {
     tembakPeluru();
   });
 
-  // Text UI
   scoreText = this.add.text(16, 16, 'Skor: 0', { fontSize: '20px', fill: '#ffffff' }).setScrollFactor(0);
   creditText = this.add.text(150, 16, 'Game By @imphiiphii', { fontSize: '20px', fill: '#ffffff', fontStyle: 'italic' }).setScrollFactor(0);
 
@@ -202,8 +202,11 @@ function update() {
 
 function tembakPeluru() {
   if (gameOver) return;
-  const bullet = bullets.create(player.x + 30, player.y, 'bullet').setScale(0.03);
-  bullet.setVelocityX(500);
+
+  const bullet = bullets.create(player.x + 30, player.y, 'bullet')
+    .setScale(0.15, 0.05)
+    .setDepth(5);
+  bullet.setVelocityX(700);
 }
 
 function tabrakMusuh(player, musuh) {

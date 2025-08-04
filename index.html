@@ -1,45 +1,192 @@
-📁 your-project/
-├─ index.html
-└─ assets/
-   ├─ background.png
-   ├─ ground.png
-   ├─ player.png
-   ├─ enemy.png   ← digunakan untuk musuh darat dan terbang
-   └─ bgm.mp3
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8" />
+  <title>Fudders Game</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+  <script src="https://cdn.jsdelivr.net/npm/phaser@3.70.0/dist/phaser.min.js"></script>
+  <style>
+    html, body {
+      margin: 0; padding: 0; overflow: hidden;
+      background: #000;
+      height: 100%; touch-action: manipulation;
+    }
+    canvas {
+      display: block;
+    }
+    #gameOverPopup {
+      position: absolute;
+      top: 50%; left: 50%;
+      transform: translate(-50%, -50%);
+      background: #111;
+      padding: 20px 30px;
+      color: #fff;
+      font-family: Arial;
+      text-align: center;
+      border: 3px solid #f00;
+      border-radius: 10px;
+      display: none;
+      z-index: 999;
+    }
+    #gameOverPopup button {
+      margin-top: 10px;
+      padding: 10px 20px;
+      font-size: 16px;
+      background: #f00;
+      color: #fff;
+      border: none;
+      border-radius: 5px;
+    }
+    #btnJump, #btnShoot {
+      position: absolute;
+      bottom: 20px;
+      width: 60px;
+      height: 60px;
+      font-size: 22px;
+      font-weight: bold;
+      background-color: rgba(255,255,255,0.8);
+      border: none;
+      border-radius: 50%;
+      z-index: 999;
+      user-select: none;
+    }
+    #btnJump { left: 20px; }
+    #btnShoot { right: 20px; }
+  </style>
+</head>
+<body oncontextmenu="return false;">
+  <!-- Popup Game Over -->
+  <div id="gameOverPopup">
+    <h2>💀 Game Over</h2>
+    <p id="finalScoreText">Skor: 0</p>
+    <button onclick="location.reload()">Main Lagi</button>
+  </div>
+
+  <!-- Tombol Kontrol -->
+  <button id="btnJump">X</button>
+  <button id="btnShoot">Y</button>
+
+<script>
+const config = {
+  type: Phaser.AUTO,
+  scale: {
+    mode: Phaser.Scale.RESIZE,
+    autoCenter: Phaser.Scale.CENTER_BOTH,
+    width: window.innerWidth,
+    height: window.innerHeight
+  },
+  physics: {
+    default: "arcade",
+    arcade: { gravity: { y: 1000 }, debug: false }
+  },
+  scene: { preload, create, update }
+};
+
+let player, enemies, flyingEnemies, bullets;
+let enemyLabels = [], bgm, score = 0;
+let scoreText, creditText, gameOver = false;
+
+const game = new Phaser.Game(config);
+
+function preload() {
+  this.load.image('bg', 'assets/background.png');
+  this.load.image('ground', 'assets/ground.png');
+  this.load.image('player', 'assets/player.png');
+  this.load.image('fudders', 'assets/enemy.png');
+  this.load.image('flying', 'assets/enemy.png'); // gunakan image sama
+  this.load.image('bullet', 'https://upload.wikimedia.org/wikipedia/commons/3/3f/Black_circle.png');
+  this.load.audio('bgm', 'assets/bgm.mp3');
+}
+
+function create() {
+  const height = this.scale.height;
+
+  this.physics.world.setBounds(0, 0, 5000, height);
+  this.cameras.main.setBounds(0, 0, 5000, height);
+
+  for (let i = 0; i < 20; i++) {
+    this.add.image(i * 400, height / 2, 'bg')
+      .setDisplaySize(400, height)
+      .setScrollFactor(0)
+      .setDepth(-2);
   }
 
-  // UI
-  scoreText = this.add.text(16, 16, 'Skor: 0', {
-    fontSize: '20px', fill: '#ffffff'
-  }).setScrollFactor(0);
+  const platforms = this.physics.add.staticGroup();
+  for (let i = 0; i < 30; i++) {
+    platforms.create(64 + i * 160, height - 32, 'ground').setScale(0.5).refreshBody();
+  }
 
-  creditText = this.add.text(150, 16, 'Game By @imphiiphii', {
-    fontSize: '20px', fill: '#ffffff', fontStyle: 'italic'
-  }).setScrollFactor(0);
+  player = this.physics.add.sprite(100, height - 150, 'player').setScale(0.15);
+  player.setBounce(0.1).setCollideWorldBounds(true);
+  this.physics.add.collider(player, platforms);
+  this.cameras.main.startFollow(player, true, 0.08, 0.08);
 
-  // Musik
-  bgm = this.sound.add('bgm', { loop: true, volume: 0.5 });
-  bgm.play();
+  enemies = this.physics.add.group();
+  flyingEnemies = this.physics.add.group();
+  bullets = this.physics.add.group();
 
-  // Jump
-  this.input.on('pointerdown', function (pointer) {
-    if ((pointer.rightButtonDown() || pointer.primaryDown) && player.body.touching.down && !gameOver) {
+  for (let i = 1; i <= 6; i++) {
+    const e = enemies.create(600 * i, height - 150, 'fudders').setScale(0.15);
+    e.setCollideWorldBounds(true).setBounce(0.1);
+    this.physics.add.collider(e, platforms);
+    this.physics.add.overlap(player, e, tabrakMusuh, null, this);
+    enemyLabels.push({ enemy: e, label: this.add.text(0, 0, 'Fudders', { font: '16px Arial', fill: '#ff0000' }) });
+  }
+
+  // Musuh terbang
+  this.time.addEvent({
+    delay: 3000,
+    loop: true,
+    callback: () => {
+      const fx = player.x + Phaser.Math.Between(500, 800);
+      const fy = Phaser.Math.Between(150, height - 300);
+      const flying = flyingEnemies.create(fx, fy, 'flying').setScale(0.1);
+      flying.setVelocityX(-100);
+      this.physics.add.overlap(player, flying, tabrakMusuh, null, this);
+      this.physics.add.overlap(bullets, flying, killEnemy, null, this);
+    }
+  });
+
+  // Tombol layar
+  document.getElementById('btnJump').addEventListener('click', () => {
+    if (player.body.touching.down && !gameOver) {
       player.setVelocityY(-500);
     }
   });
+
+  document.getElementById('btnShoot').addEventListener('click', () => {
+    tembakPeluru();
+  });
+
+  // Text UI
+  scoreText = this.add.text(16, 16, 'Skor: 0', { fontSize: '20px', fill: '#ffffff' }).setScrollFactor(0);
+  creditText = this.add.text(150, 16, 'Game By @imphiiphii', { fontSize: '20px', fill: '#ffffff', fontStyle: 'italic' }).setScrollFactor(0);
+
+  bgm = this.sound.add('bgm', { loop: true, volume: 0.5 });
+  bgm.play();
+
+  this.physics.add.overlap(bullets, enemies, killEnemy, null, this);
 }
 
 function update() {
   if (gameOver) return;
+
   player.setVelocityX(150);
 
-  enemies.children.iterate((enemyObj) => {
-    if (!enemyObj.active) return;
-    const dir = player.x < enemyObj.x ? -1 : 1;
-    enemyObj.setVelocityX(40 * dir);
+  enemies.children.iterate((e) => {
+    if (e.active) {
+      const dir = player.x < e.x ? -1 : 1;
+      e.setVelocityX(30 * dir);
+    }
   });
 
-  // Update enemy labels
+  flyingEnemies.children.iterate((e) => {
+    if (e.active) {
+      const angle = Phaser.Math.Angle.Between(e.x, e.y, player.x, player.y);
+      this.physics.velocityFromRotation(angle, 100, e.body.velocity);
+    }
+  });
+
   enemyLabels.forEach(({ enemy, label }) => {
     if (enemy.active) {
       label.setPosition(enemy.x - 30, enemy.y - 40);
@@ -47,17 +194,37 @@ function update() {
       label.setVisible(false);
     }
   });
+
+  bullets.children.iterate((b) => {
+    if (b.x > player.x + 600) b.destroy();
+  });
+}
+
+function tembakPeluru() {
+  if (gameOver) return;
+  const bullet = bullets.create(player.x + 30, player.y, 'bullet').setScale(0.03);
+  bullet.setVelocityX(500);
 }
 
 function tabrakMusuh(player, musuh) {
   if (gameOver) return;
-  if (player.body.velocity.y > 0) {
+  if (player.body.velocity.y > 0 && musuh.body.touching.up) {
     musuh.disableBody(true, true);
-    score += 10;
-    scoreText.setText('Skor: ' + score);
+    tambahSkor(10);
   } else {
     endGame();
   }
+}
+
+function killEnemy(bullet, musuh) {
+  bullet.destroy();
+  musuh.disableBody(true, true);
+  tambahSkor(15);
+}
+
+function tambahSkor(nilai) {
+  score += nilai;
+  scoreText.setText('Skor: ' + score);
 }
 
 function endGame() {
